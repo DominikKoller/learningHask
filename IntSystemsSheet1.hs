@@ -1,4 +1,5 @@
 import Data.List
+import qualified Data.Set
 import Data.Maybe
 
 data State = State { 
@@ -7,7 +8,7 @@ data State = State {
                    , mr :: Int
                    , cr :: Int
                    , boat :: Int
-                  } deriving Show
+                  } deriving (Show, Ord, Eq)
 
 initialState = State 3 3 0 0 1
 
@@ -46,13 +47,43 @@ depthFirstSearch n
                     .map (depthFirstSearch)
                     .children $ n
 
+depthFirstSearchCatchDups :: Node -> Data.Set.Set State -> Maybe Node
+depthFirstSearchCatchDups n checked
+    | getState n `Data.Set.member` checked = Nothing
+    | isGoal.getState $ n = Just n
+    | otherwise =   headMay
+                    .catMaybes 
+                    .map (\c -> depthFirstSearchCatchDups c newChecked)
+                    .children $ n
+        where newChecked = Data.Set.insert (getState n) checked
+
+initialNode = (Node initialState [])
+bfs = breadthFirstSearch [initialNode]
+
 breadthFirstSearch :: [Node] -> Maybe Node
 breadthFirstSearch frontier
-     | any(isGoal.getState) frontier = find(isGoal.getState) frontier
+     | isJust goalInFrontier = goalInFrontier
      | otherwise =   breadthFirstSearch
                      .concat
                      .map (children) 
                      $ frontier
+        where goalInFrontier = find(isGoal.getState) frontier
+
+bfsDubs = breadthFirstSearchCatchDubs [initialNode] Data.Set.empty
+
+I think this is inserting children into newChecked, then going into these children, thinking they were already checked
+breadthFirstSearchCatchDubs :: [Node] -> Data.Set.Set State-> Maybe Node
+breadthFirstSearchCatchDubs frontier checked
+     | isJust goalInFrontier = goalInFrontier
+     | otherwise =   (\ns-> breadthFirstSearchCatchDubs ns newChecked)
+                     .concat
+                     .map (children) 
+                     $ frontier
+        where   filteredFrontier :: [Node]
+                filteredFrontier = filter(\f-> getState f `Data.Set.member` checked) frontier
+                goalInFrontier = find(isGoal.getState) filteredFrontier
+                newChecked :: Data.Set.Set State
+                newChecked = Data.Set.union checked (Data.Set.fromList . map getState $ filteredFrontier)
 
 maxDepthSearch :: Int -> Node -> Maybe Node
 maxDepthSearch d n
