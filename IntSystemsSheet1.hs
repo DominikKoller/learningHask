@@ -92,7 +92,17 @@ maxDepthSearch d n
                     .map (maxDepthSearch (d-1))
                     .children $ n
 
-
+maxDepthSearchLogVisited :: Int -> Node -> Data.Set.Set State -> Maybe Node
+maxDepthSearchLogVisited depth node visited
+    | isGoal.getState $ node = Just node
+    | depth == 0 = Nothing
+    | isVisited = Nothing
+    | otherwise =   headMay
+                    .catMaybes
+                    .map (\newNode -> maxDepthSearchLogVisited (depth-1) newNode newVisited)
+                    .children $ node
+        where   isVisited = getState node `Data.Set.member` visited
+                newVisited = undefined
 
 depthIteratingSearch d n
     | isJust result = result
