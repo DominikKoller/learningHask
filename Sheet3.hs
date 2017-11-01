@@ -175,4 +175,33 @@ zip'' = zipWith'' (\ x y -> (x, y))
 -- | *Main> zip'' [1..3] ['a'..'z']
 -- | [(1,'a'),(2,'b'),(3,'c')]
 
-https://www.cs.ox.ac.uk/teaching/materials17-18/fp/sheet3.pdf
+-- | 6.4 Write (perhaps using unfold to do so) a function
+-- | > splits :: [a] -> [(a,[a])]
+-- | which given a list xs returns a list of all the (x; as ++ bs) that satisfy
+-- | as ++ [x] ++ bs = xs so that you can define for non-null xs
+-- | > permutations xs =
+-- | > [ x:zs | (x,ys) <- splits xs, zs <- permutations ys ]
+
+splits :: [a] -> [(a,[a])]
+splits [] = []
+splits (x:xs) = (x,xs) : (map (\ (k, ys) -> (k, x:ys)) . splits $ xs)
+
+-- | using unfold:
+
+-- | Trying to come up with a definition of unfold:
+-- | unfold :: (a -> Bool) -> (a -> b) -> (a -> a) -> a -> [b]
+-- | unfold endF mapF f' start = map mapF (unfoldRec endF f' [start])
+-- |         where unfoldRec endF f' (x:xs)  | endF (f' x) = (f' x:xs)
+-- |                                         | otherwise = unfoldRec endF f' (f' x:x:xs)
+
+-- | After looking at the lecture notes again:
+unfold :: (a -> Bool) -> (a -> b) -> (a -> a) -> a -> [b]
+unfold null head tail = map head . takeWhile (not.null) . iterate tail
+-- | noting that: iterate f x = x : iterate f (f x)
+
+-- | splits' :: [a] -> [(a,[a])]
+-- | splits' xs = unfold (from one element to the next) (this is the last element) (first element)
+splits' xs = unfold (\ (xs, _) -> null xs) 
+                    (\ ((x:xs), ys) -> (x, xs++ys)) 
+                    (\ (x:xs, ys) -> (xs, x:ys))
+                    $ (xs,[])
