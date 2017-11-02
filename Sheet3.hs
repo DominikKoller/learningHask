@@ -194,7 +194,7 @@ splits (x:xs) = (x,xs) : (map (\ (k, ys) -> (k, x:ys)) . splits $ xs)
 -- |         where unfoldRec endF f' (x:xs)  | endF (f' x) = (f' x:xs)
 -- |                                         | otherwise = unfoldRec endF f' (f' x:x:xs)
 
--- | After looking at the lecture notes again:
+-- | After looking at the lecture notes again, noticed I missed a map:
 unfold :: (a -> Bool) -> (a -> b) -> (a -> a) -> a -> [b]
 unfold null head tail = map head . takeWhile (not.null) . iterate tail
 -- | noting that: iterate f x = x : iterate f (f x)
@@ -205,3 +205,69 @@ splits' xs = unfold (\ (xs, _) -> null xs)
                     (\ ((x:xs), ys) -> (x, xs++ys)) 
                     (\ (x:xs, ys) -> (xs, x:ys))
                     $ (xs,[])
+
+-- | First shot at implementing permutations, this double counts some permutations:
+
+-- | permutations :: [a] -> [[a]]
+-- | permutations = map (uncurry insertAtAll) . splits
+
+-- | insertAtAll x xs = [insertAt i x xs| i <- [0..length xs]]
+-- | 
+-- | insertAt 0 x [] = [x]
+-- | insertAt i x (y:ys) | i == 0 = (x:y:ys)
+-- |                     | otherwise = y:(insertAt (i-1) x ys)
+
+-- | As it is in the sheet:
+permutations :: [a] -> [[a]]
+permutations [] = [[]]
+permutations xs = [z:ys | (z, zs) <- splits xs, ys <- permutations zs]
+
+
+-- | 6.5 The function permutation0
+-- | > permutations’ :: [a] -> [[a]]
+-- | > permutations’ [] = [[]]
+-- | > permutations’ (x:xs) =
+-- | > [ zs | ys <- permutations’ xs, zs <- include x ys ]
+-- | has the form of a fold, as does include
+-- | > include :: a -> [a] -> [[a]]
+-- | > include x [] = [[x]]
+-- | > include x (y:ys) = [x:y:ys] ++ map (y:) (include x ys)
+-- | Rewrite them to use fold (or foldr ) and no explicit recursion.
+
+-- | reminder:
+-- | foldr' :: (a -> b -> b) -> b -> [a] -> b
+-- | foldr' f b [x] = f x b
+-- | foldr' f b (x:xs) = f x (foldr' f b xs)
+
+-- include :: a -> [a] -> [[a]]
+-- does not work:
+-- include x xs = foldr (\ e (zs:zss) -> map (e:) (zss++[(x:zs)])) (take (length xs) (repeat [])) xs
+
+include :: a -> [a] -> [[a]]
+include x [] = [[x]]
+include x (y:ys) = [x:y:ys] ++ map (y:) (include x ys)
+
+permutations' :: [a] -> [[a]]
+permutations' = foldr (\ elem lists -> concat . map (include elem) $ lists) [[]]
+
+-- | *Main> permutations' [1,2,3]
+-- | [[1,2,3],[2,1,3],[2,3,1],[1,3,2],[3,1,2],[3,2,1]]
+-- | *Main> all (`elem` permutations [1,2,3,4,5]) (permutations' [1,2,3,4,5])
+-- | True
+-- | *Main> all (`elem` permutations' [1,2,3,4,5]) (permutations [1,2,3,4,5])
+-- | True
+
+-- | First attempt:
+-- | nclude' x = foldr (\ elem (zs:zss) -> map (elem:) $ (zs:(x:zs):zss)) [[]]
+include' :: a -> [a] -> [[a]]
+include' x = foldr (\ elem (zs:zss) ->  swapFirsts . map (elem:) $ (zs:zs:zss)) [[x]]
+                where swapFirsts ((x:y:xs):xss) = (y:x:xs):xss
+
+-- | *Main> include' 99 []
+-- | [[99]]
+-- | *Main> include' 99 [1]
+-- | [[99,1],[1,99]]
+-- | *Main> include' 99 [1,2]
+-- | [[99,1,2],[1,99,2],[1,2,99]]
+-- | *Main> include' 99 [1,2,3]
+-- | [[99,1,2,3],[1,99,2,3],[1,2,99,3],[1,2,3,99]]
