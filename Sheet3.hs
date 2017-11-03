@@ -1,3 +1,5 @@
+import Data.Maybe
+
 -- | Q 5.1 The predefined functions
 -- | take :: Int -> [a] -> [a]
 -- | drop :: Int -> [a] -> [a]
@@ -274,3 +276,36 @@ include' x = foldr (\ elem ((z:zs):zss) -> (z:elem:zs) : (map (elem:) ((z:zs):zs
 -- | where the chosen nht depends on the given n and h and t, but crucially need not 
 -- | call them separately. Show how to implement selection sort as an instance of 
 -- | unfold0 without having to repeat any calls of minimum.
+
+
+-- reminder:
+-- unfold :: (a->Bool) -> (a->b) -> (a->a) -> a -> [b]
+-- unfold = map head . takeWhile (not.null) . iterate tail
+
+unfold' :: (a -> Maybe (b, a)) -> a -> [b]
+unfold' nht = map fst . catMaybes . takeWhile (isJust) . iterateMaybe nht . nht
+
+-- | noting that: iterate f x = x : iterate f (f x)
+iterateMaybe f Nothing = Nothing : iterateMaybe f Nothing
+iterateMaybe f (Just (x, y)) = Just (x, y) : iterateMaybe f (f y)
+
+-- | selection sort with conventional unfold:
+
+selectionSort xs = unfold null minimum excludeMin $ xs
+
+excludeMin xs = excludeFirst (minimum xs) xs
+
+excludeFirst x [] = []
+excludeFirst x (y:ys) | y == x = ys
+                 | otherwise = y: excludeFirst x ys
+
+safeTail :: [a] -> [a]
+safeTail [] = []
+safeTail (x:xs) = xs
+
+-- | unfold' :: ([a] -> Maybe (a, [a])) -> [a] -> [a]
+selectionSort' xs = unfold' (\ xs -> case xs of [] -> Nothing
+                                                xs -> Just (splitMin xs)) xs
+       
+splitMin xs = (minimum xs, excludeFirst (minimum xs) xs)
+                where mini = minimum xs
