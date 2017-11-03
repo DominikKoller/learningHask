@@ -239,16 +239,8 @@ permutations xs = [z:ys | (z, zs) <- splits xs, ys <- permutations zs]
 -- | foldr' f b [x] = f x b
 -- | foldr' f b (x:xs) = f x (foldr' f b xs)
 
--- include :: a -> [a] -> [[a]]
--- does not work:
--- include x xs = foldr (\ e (zs:zss) -> map (e:) (zss++[(x:zs)])) (take (length xs) (repeat [])) xs
-
-include :: a -> [a] -> [[a]]
-include x [] = [[x]]
-include x (y:ys) = [x:y:ys] ++ map (y:) (include x ys)
-
 permutations' :: [a] -> [[a]]
-permutations' = foldr (\ elem lists -> concat . map (include elem) $ lists) [[]]
+permutations' = foldr (\ elem lists -> concat . map (include' elem) $ lists) [[]]
 
 -- | *Main> permutations' [1,2,3]
 -- | [[1,2,3],[2,1,3],[2,3,1],[1,3,2],[3,1,2],[3,2,1]]
@@ -258,10 +250,9 @@ permutations' = foldr (\ elem lists -> concat . map (include elem) $ lists) [[]]
 -- | True
 
 -- | First attempt:
--- | nclude' x = foldr (\ elem (zs:zss) -> map (elem:) $ (zs:(x:zs):zss)) [[]]
+-- | include' x = foldr (\ elem (zs:zss) -> map (elem:) $ (zs:(x:zs):zss)) [[]]
 include' :: a -> [a] -> [[a]]
-include' x = foldr (\ elem (zs:zss) ->  swapFirsts . map (elem:) $ (zs:zs:zss)) [[x]]
-                where swapFirsts ((x:y:xs):xss) = (y:x:xs):xss
+include' x = foldr (\ elem ((z:zs):zss) -> (z:elem:zs) : (map (elem:) ((z:zs):zss))) [[x]]
 
 -- | *Main> include' 99 []
 -- | [[99]]
@@ -271,3 +262,15 @@ include' x = foldr (\ elem (zs:zss) ->  swapFirsts . map (elem:) $ (zs:zs:zss)) 
 -- | [[99,1,2],[1,99,2],[1,2,99]]
 -- | *Main> include' 99 [1,2,3]
 -- | [[99,1,2,3],[1,99,2,3],[1,2,99,3],[1,2,3,99]]
+
+-- | 6.6 Calls of unfold null head tail are often ineffcient because at least 
+-- | two of the parameter functions have to do the same work and each is each is 
+-- | obliged to do it for themselves. One possible solution to this property is to 
+-- | have a single parameter, say  nht :: a -> Maybe (b, a) which encapsulates the 
+-- | work of the three parameters of unfold, together with 
+-- | > unfold’ :: (a -> Maybe (b,a)) -> a -> [b] 
+-- | for which 
+-- | unfold0 nht = unfold n h t 
+-- | where the chosen nht depends on the given n and h and t, but crucially need not 
+-- | call them separately. Show how to implement selection sort as an instance of 
+-- | unfold0 without having to repeat any calls of minimum.
