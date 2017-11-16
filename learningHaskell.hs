@@ -35,3 +35,7 @@ dropWhile' p (x:xs)
 span' p xs = (takeWhile' p xs, dropWhile' p xs)
 
 break' p = span (not . p)
+
+
+reverse' :: [a] -> [a]
+reverse' = foldr ((:)) []
