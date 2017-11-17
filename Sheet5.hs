@@ -178,7 +178,8 @@ tet' :: Nat -> Nat -> Nat
 tet' n = foldNat (Succ Zero) (pow' n)
 
 -- | Q 10.1 on paper
--- | TODO Q 10.2, 10.3
+-- | start of Q 10.2 on paper
+-- | TODO Q 10.2 rest
 
 -- | Q 10.4
 
@@ -221,10 +222,74 @@ cons x xs = cat (Snoc Lin x) xs
 -- *Main> list.liste $ []
 -- []
 
--- TODO
--- What doeslistreturn when applied to an innite list? What are the
--- innite objects of typeListe?
--- Find equivalent denitions oflistandlisteas instances ofrevfold.
+-- | liste returns bottom when applied to an infinite list. TODO describe why?
+-- | The infinite objects of type Liste a:
 
--- TODO
--- last question
+takeOuter :: Int -> Liste a -> Liste a
+takeOuter _ Lin = Lin
+takeOuter 0 xs = Lin
+takeOuter n (Snoc xs x) = Snoc (takeOuter (n-1) xs) x
+
+-- *Main> takeOuter 3 $ Snoc (Snoc (Snoc (Snoc (Snoc Lin 0)1)2)3)4
+-- Snoc (Snoc (Snoc Lin 2) 3) 4
+
+repeatListe :: a -> Liste a
+repeatListe x = Snoc (repeatListe x) x
+
+-- repeatListe gives an infinite object of type Liste. It starts with the last element (of the corresponding list)
+
+revFolde :: a -> (b -> a -> a) -> Liste b -> a
+revFolde lin snoc Lin = lin
+revFolde lin snoc (Snoc xs x) = revFolde (snoc x lin) snoc xs
+
+-- revFolde can (as expected) not work on infinite lists:
+-- *Main> takeOuter 5 ( folde Lin Snoc (repeatListe 5) )
+-- Snoc (Snoc (Snoc (Snoc (Snoc Lin 5) 5) 5) 5) 5
+
+-- *Main> revFolde Lin (flip Snoc) (repeatListe 5)
+-- Interrupted.
+
+-- list :: Liste a -> [a]
+-- list = folde [] (\acc e -> acc++[e])
+-- 
+-- liste :: [a] -> Liste a
+-- liste = foldr cons Lin
+-- 
+-- cons :: a -> Liste a -> Liste a
+-- cons x xs = cat (Snoc Lin x) xs
+
+
+list' :: Liste a -> [a]
+list' = revFolde [] (:)
+
+-- *Main> list' (Snoc (Snoc (Snoc (Snoc Lin 1) 2) 3) 4)
+-- [1,2,3,4]
+
+liste' :: [a] -> Liste a
+liste' = foldl Snoc Lin
+
+-- *Main> liste' [1,2,3,4]
+-- Snoc (Snoc (Snoc (Snoc Lin 1) 2) 3) 4
+
+-- Q 10.5
+
+-- | reminder: the unfold on lists
+-- | unfold :: (a->Bool) -> (a->b) -> (a->a) -> a -> [b]
+-- | unfold null head tail =
+-- | map head . takeWhile (not.null) . iterate tail
+
+unfolde :: (a -> Bool) -> (a->b) (a->a) -> a -> Liste b
+unfolde stop mape next x | stop x = Lin
+                            | otherwise = Snoc (unfolde stop mape next (next x)) (mape x) 
+
+mape :: (a -> b) -> Liste a -> Liste b
+mape _ Lin = Lin
+mape f (Snoc xs x) = Snoc (mape f xs) (f x)
+
+iteratee :: (a->a) -> a -> Liste a
+iteratee f x = Snoc (iteratee f x) (f x)
+
+takeWhilee :: (a -> Bool) -> Liste a -> Liste a
+takeWhilee _ Lin = Lin
+takeWhilee p (Snoc xs x) | p x = Snoc (takeWhilee p xs) x
+                         | otherwise = Lin
