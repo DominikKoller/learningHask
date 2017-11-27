@@ -3,6 +3,7 @@
 
 data Nat = Zero | Succ Nat
 
+-- not required but making it easier to count
 instance Show Nat where
     show n = "_" ++ show (int n) ++ "_"
 
@@ -147,7 +148,7 @@ nat' i = unfoldNat (\n -> int' n /= i)
 -- | This is very inefficient since it needs to do int on every step
 
 -- TODO if I have a lot of time: 
--- Come up with unfoldNat that passes a tuple of the Nat and an arbitrary accumulator
+-- Come up with unfoldNat that passes a tuple of the Nat and an accumulator of type a
 
 add' :: Nat -> Nat -> Nat
 add' n = foldNat n Succ
@@ -237,6 +238,7 @@ repeatListe :: a -> Liste a
 repeatListe x = Snoc (repeatListe x) x
 
 -- repeatListe gives an infinite object of type Liste. It starts with the last element (of the corresponding list)
+-- This is what infinite objects of type Liste look like: starting with the outermost (last?) element, going 'inside' infinitely
 
 revFolde :: a -> (b -> a -> a) -> Liste b -> a
 revFolde lin snoc Lin = lin
@@ -278,18 +280,45 @@ liste' = foldl Snoc Lin
 -- | unfold null head tail =
 -- | map head . takeWhile (not.null) . iterate tail
 
-unfolde :: (a -> Bool) -> (a->b) (a->a) -> a -> Liste b
-unfolde stop mape next x | stop x = Lin
-                            | otherwise = Snoc (unfolde stop mape next (next x)) (mape x) 
+unfolde :: (a -> Bool) -> (a->b) -> (a->a) -> a -> Liste b
+unfolde lin daeh liat x  | lin x = Lin
+                         | otherwise = Snoc (unfolde lin daeh liat (liat x)) (daeh x) 
 
-mape :: (a -> b) -> Liste a -> Liste b
-mape _ Lin = Lin
-mape f (Snoc xs x) = Snoc (mape f xs) (f x)
+-- This goes 'from the last to the first' element when we consider the corresponding list:
+-- Snoc (Snoc (Snoc (Snoc (Snoc (Snoc Lin "5") "4") "3") "2") "1") "0"
 
-iteratee :: (a->a) -> a -> Liste a
-iteratee f x = Snoc (iteratee f x) (f x)
+-- Which should be what we want:
 
-takeWhilee :: (a -> Bool) -> Liste a -> Liste a
-takeWhilee _ Lin = Lin
-takeWhilee p (Snoc xs x) | p x = Snoc (takeWhilee p xs) x
-                         | otherwise = Lin
+-- *Main> unfolde lin daeh liat (Snoc (Snoc (Snoc Lin 0)1)2)
+-- Snoc (Snoc (Snoc Lin 0) 1) 2
+
+head' :: [a] -> a
+head' (x:xs) = x
+
+tail' :: [a] -> [a]
+tail' (x:xs) = xs
+
+daeh :: Liste a -> a
+daeh (Snoc xs x) = x
+
+liat :: Liste a -> Liste a
+liat (Snoc xs x) = xs
+
+lin :: Liste a -> Bool
+lin Lin = True
+lin _ = False
+
+-- I defined these hoping to be able to define unfolde with 
+-- function composition, which did not work as I wanted it to
+
+-- mape :: (a -> b) -> Liste a -> Liste b
+-- mape _ Lin = Lin
+-- mape f (Snoc xs x) = Snoc (mape f xs) (f x)
+-- 
+-- iteratee :: (a->a) -> a -> Liste a
+-- iteratee f x = Snoc (iteratee f x) (f x)
+
+-- takeWhilee :: (a -> Bool) -> Liste a -> Liste a
+-- takeWhilee _ Lin = Lin
+-- takeWhilee p (Snoc xs x) | p x = Snoc (takeWhilee p xs) x
+--                          | otherwise = Lin
